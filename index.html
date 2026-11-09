@@ -1,0 +1,867 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SERVO - Assistente & Amigo IA OS</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter & JetBrains Mono Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050814;
+            color: #E2E8F0;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Custom Glowing & Cyberpunk Effects */
+        .glass-panel {
+            background: rgba(10, 15, 30, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        .glass-panel-purple {
+            background: rgba(20, 10, 35, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+        }
+        .glass-panel-emerald {
+            background: rgba(6, 25, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+        .glow-cyan {
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.35);
+        }
+        .glow-purple {
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.35);
+        }
+        .glow-emerald {
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.35);
+        }
+        .pulse-ring {
+            animation: pulse-ring-anim 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+        }
+        @keyframes pulse-ring-anim {
+            0% { transform: scale(0.92); opacity: 0.9; }
+            50% { transform: scale(1.18); opacity: 0.25; }
+            100% { transform: scale(0.92); opacity: 0.9; }
+        }
+        .wave-bar {
+            animation: wave 1.2s ease-in-out infinite alternate;
+        }
+        @keyframes wave {
+            0% { height: 4px; }
+            100% { height: 32px; }
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: rgba(10, 15, 30, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.4); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.6); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative selection:bg-purple-500 selection:text-white">
+
+    <!-- OVERLAY FLOATING BUBBLE (Bolha Flutuante estilo Assistente de Tela) -->
+    <div id="floatingOverlay" class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 transition-all duration-300">
+        <!-- Toast Popup Flutuante -->
+        <div id="floatingBubbleToast" class="hidden bg-slate-950/95 border border-cyan-400/60 text-slate-100 text-xs px-4 py-3 rounded-2xl shadow-2xl max-w-xs backdrop-blur-md animate-fade-in flex items-center gap-3">
+            <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping shrink-0"></div>
+            <span id="floatingToastText">SERVO pronto e ouvindo no topo da tela...</span>
+        </div>
+
+        <!-- Botão da Bolha Flutuante com Efeito Orb -->
+        <div class="relative">
+            <div id="floatingPulse" class="absolute inset-0 rounded-full bg-cyan-500/30 blur-md transition-all duration-500 pointer-events-none scale-100"></div>
+            
+            <button onclick="toggleOverlayMode()" id="floatingOrbBtn" class="relative z-10 w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-600 via-purple-950 to-slate-950 border-2 border-cyan-400/80 flex items-center justify-center text-cyan-200 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 glow-cyan">
+                <i id="floatingIcon" data-lucide="bot" class="w-8 h-8 text-cyan-300"></i>
+                <span id="floatingMicDot" class="absolute top-1 right-1 flex h-3.5 w-3.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-cyan-500"></span>
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Tela Simulada de Celular (Ativada ao Minimizar para o Modo Overlay) -->
+    <div id="simulatedPhoneBg" class="hidden fixed inset-0 z-0 bg-slate-950 flex flex-col items-center justify-center p-4">
+        <!-- Mock App Simulator Bar -->
+        <div class="w-full max-w-md glass-panel rounded-3xl p-6 border border-slate-800 flex flex-col gap-5 text-center shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-cyan-400"></i>
+                    <span class="text-xs font-mono text-slate-300">Simulador de Contexto de Apps</span>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">SERVO Overlay Ativo</span>
+            </div>
+
+            <div class="py-4 space-y-3">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-purple-900 to-cyan-900 flex items-center justify-center text-slate-200 border border-slate-700 shadow-lg">
+                    <i id="simulatedAppIcon" data-lucide="message-circle" class="w-8 h-8 text-cyan-400"></i>
+                </div>
+                <h3 id="simulatedAppName" class="text-base font-bold text-slate-100">WhatsApp / Redes Sociais</h3>
+                <p class="text-xs text-slate-400 leading-relaxed px-4">
+                    O SERVO continua flutuando no canto da tela, ouvindo a palavra <span class="text-cyan-400 font-bold">"SERVO"</span>, executando tarefas e conversando sem atrapalhar seu uso.
+                </p>
+            </div>
+
+            <!-- Context Switcher -->
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="switchSimulatedApp('social')" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-xs flex flex-col items-center gap-1 text-slate-300 hover:text-cyan-400 transition-colors">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> Social
+                </button>
+                <button onclick="switchSimulatedApp('browser')" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-xs flex flex-col items-center gap-1 text-slate-300 hover:text-purple-400 transition-colors">
+                    <i data-lucide="globe" class="w-4 h-4"></i> Web
+                </button>
+                <button onclick="switchSimulatedApp('game')" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-xs flex flex-col items-center gap-1 text-slate-300 hover:text-emerald-400 transition-colors">
+                    <i data-lucide="gamepad-2" class="w-4 h-4"></i> Jogos
+                </button>
+            </div>
+
+            <button onclick="toggleOverlayMode()" class="mt-2 w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-purple-600 to-emerald-500 text-slate-950 font-bold text-xs shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2">
+                <i data-lucide="maximize-2" class="w-4 h-4"></i> Expandir Painel do SERVO OS
+            </button>
+        </div>
+    </div>
+
+    <!-- Header Principal (OS Launcher Bar) -->
+    <header id="mainHeader" class="glass-panel sticky top-0 z-40 border-b border-cyan-900/30 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div id="servoAvatar" class="relative flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-950 via-purple-950 to-slate-900 border border-cyan-400/40 glow-cyan transition-all duration-500">
+                    <i id="servoAvatarIcon" data-lucide="bot" class="w-6 h-6 text-cyan-400 transition-colors"></i>
+                    <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-cyan-500"></span>
+                    </span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-xl tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-300 to-emerald-400">SERVO</h1>
+                        <span id="modeBadge" class="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40">Servo Obediente</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Função Principal do Celular & Companheiro IA</p>
+                </div>
+            </div>
+
+            <!-- Personality Selector & Quick Buttons -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Selectors Bar -->
+                <div class="bg-slate-900/90 p-1 rounded-2xl border border-slate-800 flex items-center gap-1">
+                    <button id="btnModeAssistant" onclick="setMode('assistant')" class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all bg-cyan-600 text-slate-950 shadow-md">
+                        <i data-lucide="briefcase" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">Servo</span>
+                    </button>
+                    <button id="btnModeFriend" onclick="setMode('friend')" class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-slate-400 hover:text-purple-300 transition-all">
+                        <i data-lucide="heart" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">Amigo</span>
+                    </button>
+                    <button id="btnModeCustom" onclick="setMode('custom')" class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-slate-400 hover:text-emerald-300 transition-all">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">Custom</span>
+                    </button>
+                </div>
+
+                <!-- Overlay Minimize Button -->
+                <button onclick="toggleOverlayMode()" class="p-2.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-cyan-400 hover:text-cyan-300 transition-colors border border-cyan-800/40" title="Minimizar para Bolha Flutuante">
+                    <i data-lucide="minimize-2" class="w-5 h-5"></i>
+                </button>
+
+                <button onclick="toggleSettingsModal()" class="p-2.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-purple-400 transition-colors border border-slate-800" title="Configurações">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Body -->
+    <main id="mainDashboard" class="max-w-7xl mx-auto w-full px-4 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow transition-all duration-300">
+        
+        <!-- Left Column: Voice Core, Sound Visualizer & Console Terminal (7 Cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Voice Interactive Card -->
+            <div id="voiceCoreCard" class="glass-panel rounded-3xl p-6 sm:p-8 relative overflow-hidden flex flex-col items-center justify-between text-center min-h-[390px] border border-cyan-500/20 transition-all duration-500 shadow-2xl">
+                <div class="absolute -top-32 -left-32 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-32 -right-32 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <!-- Top Orb Status Bar -->
+                <div class="w-full flex items-center justify-between z-10">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="mic" class="w-4 h-4 text-cyan-400"></i>
+                        <span class="text-xs font-mono uppercase text-cyan-300 tracking-wider">Escuta Ativa ("SERVO")</span>
+                    </div>
+                    <div id="voiceStatusBadge" class="text-xs font-medium px-3 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-800">
+                        Aguardando comando de voz...
+                    </div>
+                </div>
+
+                <!-- Main Microphone Orb Button -->
+                <div class="my-6 relative flex items-center justify-center z-10">
+                    <div id="orbPulse" class="absolute inset-0 rounded-full bg-cyan-500/20 blur-xl transition-all duration-500 pointer-events-none scale-100"></div>
+                    
+                    <button id="micBtn" onclick="toggleSpeechRecognition()" class="relative z-10 w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-b from-cyan-600 via-purple-950 to-slate-950 border-2 border-cyan-400/60 flex flex-col items-center justify-center gap-2 text-cyan-200 shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 group">
+                        <i id="micIcon" data-lucide="mic" class="w-11 h-11 transition-transform duration-300 group-hover:scale-110"></i>
+                        <span id="micLabel" class="text-[11px] font-semibold tracking-wider text-cyan-100 uppercase">Falar com SERVO</span>
+                    </button>
+                </div>
+
+                <!-- Soundwaves visualization -->
+                <div id="soundWaves" class="flex items-center justify-center gap-1.5 h-9 my-1 opacity-25 transition-opacity duration-300 z-10">
+                    <div class="w-1 bg-cyan-400 rounded-full wave-bar" style="animation-delay: 0.1s"></div>
+                    <div class="w-1 bg-purple-400 rounded-full wave-bar" style="animation-delay: 0.3s"></div>
+                    <div class="w-1 bg-cyan-400 rounded-full wave-bar" style="animation-delay: 0.2s"></div>
+                    <div class="w-1 bg-emerald-400 rounded-full wave-bar" style="animation-delay: 0.4s"></div>
+                    <div class="w-1 bg-cyan-400 rounded-full wave-bar" style="animation-delay: 0.15s"></div>
+                </div>
+
+                <!-- Speech Output Text Display -->
+                <div class="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-sm min-h-[56px] flex items-center justify-center text-slate-300 z-10 shadow-inner">
+                    <span id="speechTranscript" class="italic text-slate-400">Diga "SERVO" para ativar ou peça qualquer alteração de sistema/conversa.</span>
+                </div>
+
+                <!-- Manual Input Form -->
+                <form id="textForm" onsubmit="handleManualInput(event)" class="w-full mt-4 flex gap-2 z-10">
+                    <input type="text" id="manualInput" placeholder="Escreva uma ordem ou converse com o SERVO..." class="flex-grow bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors">
+                    <button type="submit" class="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-slate-950 font-bold px-5 py-3 rounded-2xl text-sm flex items-center gap-2 transition-all shadow-lg">
+                        <span>Enviar</span>
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Real-Time Activity Terminal -->
+            <div class="glass-panel rounded-3xl p-5 border border-slate-800/80 flex flex-col flex-grow min-h-[280px]">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="terminal" class="w-4 h-4 text-purple-400"></i>
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Terminal de Ações & Automação OS</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="runSystemOptimization()" class="text-xs bg-cyan-950 text-cyan-300 border border-cyan-800 hover:bg-cyan-900 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-colors">
+                            <i data-lucide="zap" class="w-3 h-3"></i> Otimizar Celular
+                        </button>
+                        <button onclick="clearConsole()" class="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="consoleLog" class="font-mono text-xs mt-3 flex-grow overflow-y-auto max-h-[240px] space-y-2 pr-2">
+                    <div class="text-slate-500">[SISTEMA] SERVO OS v6.0 Inicializado com Sucesso.</div>
+                    <div class="text-cyan-400">[SERVO] "Às suas ordens. Escutando comando de ativação 'SERVO'..."</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: System Permissions & AI Learnings Memory (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- System Control & Permissions Center -->
+            <div class="glass-panel rounded-3xl p-6 border border-slate-800">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-cyan-400"></i>
+                        <h2 class="font-bold text-base text-slate-100">Permissões de Sistema Celular</h2>
+                    </div>
+                    <span id="grantedCount" class="text-xs font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">6/7 Ativas</span>
+                </div>
+                <p class="text-xs text-slate-400 mb-4">Acessos concedidos ao SERVO para gerenciar o dispositivo:</p>
+
+                <!-- Permission Toggles -->
+                <div class="space-y-2.5" id="permissionsList"></div>
+            </div>
+
+            <!-- AI Memory, Habits & Custom Learnings -->
+            <div id="memoryCard" class="glass-panel-purple rounded-3xl p-6 border border-purple-900/30 flex flex-col flex-grow">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="brain-circuit" class="w-5 h-5 text-purple-400"></i>
+                        <h2 class="font-bold text-base text-slate-100">Memória & Aprendizado</h2>
+                    </div>
+                    <button onclick="openAddRuleModal()" class="text-xs bg-purple-950 hover:bg-purple-900 text-purple-300 border border-purple-700/80 px-3 py-1.5 rounded-xl flex items-center gap-1 transition-colors">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Ensinar
+                    </button>
+                </div>
+                <p class="text-xs text-slate-400 mb-4">Preferências, hábitos e regras aprendidas continuamente pela IA:</p>
+
+                <!-- Dynamic Memory Items -->
+                <div id="rulesList" class="space-y-2.5 overflow-y-auto max-h-[260px] pr-1"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal: Settings & Gemini Key -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="glass-panel rounded-3xl p-6 max-w-md w-full border border-purple-500/30 shadow-2xl relative">
+            <button onclick="toggleSettingsModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-100">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            
+            <div class="flex items-center gap-2 mb-4">
+                <i data-lucide="sliders" class="w-5 h-5 text-purple-400"></i>
+                <h3 class="text-lg font-bold text-slate-100">Configurações do SERVO</h3>
+            </div>
+
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Chave da API Gemini (Opcional)</label>
+                    <input type="password" id="apiKeyInput" placeholder="Cole sua API Key do Gemini aqui..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                    <p class="text-[11px] text-slate-500 mt-1">Conecta a IA do Gemini para inteligência ilimitada. Se vazio, usa respostas inteligentes embutidas.</p>
+                </div>
+
+                <div id="customPersonaContainer" class="hidden space-y-2">
+                    <label class="block text-xs font-semibold text-emerald-400 mb-1">Definir Personalidade Customizada ("O que você quiser")</label>
+                    <input type="text" id="customPersonaInput" placeholder="Ex: Mago Futurista, Conselheiro Filosófico..." class="w-full bg-slate-950 border border-emerald-800/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <span class="text-xs text-slate-300">Respostas faladas em voz alta</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="ttsToggle" checked class="sr-only peer">
+                        <div class="w-10 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button onclick="saveSettings()" class="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition-all shadow-lg">
+                    Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Memory Rule -->
+    <div id="addRuleModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="glass-panel-purple rounded-3xl p-6 max-w-md w-full border border-purple-500/40 shadow-2xl relative">
+            <button onclick="closeAddRuleModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-100">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            
+            <div class="flex items-center gap-2 mb-4">
+                <i data-lucide="sparkles" class="w-5 h-5 text-purple-400"></i>
+                <h3 class="text-lg font-bold text-slate-100">Ensinar Novo Hábito / Regra</h3>
+            </div>
+
+            <div class="space-y-3.5 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Situação / Quando acionar?</label>
+                    <input type="text" id="ruleTriggerInput" placeholder="Ex: Sempre às 22h OU Quando eu disser 'Jantar'" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Como o SERVO deve reagir / O que fazer?</label>
+                    <input type="text" id="ruleActionInput" placeholder="Ex: Colocar telefone no silencioso e perguntar sobre meu dia" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button onclick="saveNewRule()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-lg">
+                    Gravar Memória
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer id="mainFooter" class="glass-panel border-t border-slate-900 px-4 py-3 text-center text-xs text-slate-500">
+        SERVO AI OS &copy; 2026 - Assistente Flutuante de Tela & Companheiro Pessoal.
+    </footer>
+
+    <!-- App Logic Script -->
+    <script>
+        // System Permissions Data
+        const permissions = [
+            { id: 'files', name: 'Arquivos & Armazenamento', desc: 'Criar, alterar e organizar dados do usuário', granted: true, icon: 'folder-git-2' },
+            { id: 'settings', name: 'Hardware & Configurações', desc: 'Ajustar Brilho, Volume, Wi-Fi e Economia de Bateria', granted: true, icon: 'sliders' },
+            { id: 'messages', name: 'Mensagens & Notificações', desc: 'Ler e responder notificações em segundo plano', granted: true, icon: 'message-square' },
+            { id: 'contacts', name: 'Agenda & Chamadas', desc: 'Fazer ligações e identificar contatos prioritários', granted: true, icon: 'users' },
+            { id: 'location', name: 'GPS & Localização', desc: 'Reconhecer locais frequentes e deslocamento', granted: true, icon: 'map-pin' },
+            { id: 'camera', name: 'Câmera & Visão IA', desc: 'Analisar ambiente e imagens por voz', granted: true, icon: 'camera' },
+            { id: 'system', name: 'Modificação de Sistema OS', desc: 'Executar scripts e alternar aplicativos autonomamente', granted: false, icon: 'cpu' }
+        ];
+
+        // Memory State
+        let memoryRules = [
+            { id: 1, trigger: 'Modo Amigo Ativo', action: 'Perguntar como foi o dia do usuário com empatia e tom carinhoso', type: 'Personalidade' },
+            { id: 2, trigger: 'Comando: "Boa noite"', action: 'Desativar Wi-Fi, reduzir brilho para 5% e programar alarme às 07:00', type: 'Automação' },
+            { id: 3, trigger: 'Gosto Pessoal', action: 'Gosta de música e prefere respostas curtas durante expediente de trabalho', type: 'Hábito' }
+        ];
+
+        // App States
+        let currentMode = 'assistant'; // 'assistant', 'friend', 'custom'
+        let customPersonaPrompt = "Conselheiro Filosófico e Mago Tecnológico";
+        let isOverlayMinimized = false;
+        let settings = { apiKey: '', ttsEnabled: true };
+
+        // Speech Engine
+        let recognition = null;
+        let isListening = false;
+        const synth = window.speechSynthesis;
+
+        window.onload = function() {
+            lucide.createIcons();
+            renderPermissions();
+            renderRules();
+            initSpeechRecognition();
+            logConsole("SERVO OS inicializado. Diga 'SERVO' para interagir por voz.", "info");
+        };
+
+        // Toggle Floating Overlay Mode
+        function toggleOverlayMode() {
+            isOverlayMinimized = !isOverlayMinimized;
+            const dashboard = document.getElementById('mainDashboard');
+            const header = document.getElementById('mainHeader');
+            const footer = document.getElementById('mainFooter');
+            const simulatedPhone = document.getElementById('simulatedPhoneBg');
+            const floatingIcon = document.getElementById('floatingIcon');
+
+            if (isOverlayMinimized) {
+                dashboard.classList.add('hidden');
+                header.classList.add('hidden');
+                footer.classList.add('hidden');
+                simulatedPhone.classList.remove('hidden');
+                floatingIcon.setAttribute('data-lucide', 'maximize-2');
+                showFloatingToast("SERVO minimizado! Me chame dizendo 'SERVO'.");
+            } else {
+                dashboard.classList.remove('hidden');
+                header.classList.remove('hidden');
+                footer.classList.remove('hidden');
+                simulatedPhone.classList.add('hidden');
+                floatingIcon.setAttribute('data-lucide', 'bot');
+            }
+            lucide.createIcons();
+        }
+
+        function switchSimulatedApp(type) {
+            const icon = document.getElementById('simulatedAppIcon');
+            const name = document.getElementById('simulatedAppName');
+
+            if (type === 'social') {
+                icon.setAttribute('data-lucide', 'message-circle');
+                name.innerText = "WhatsApp / Instagram";
+            } else if (type === 'browser') {
+                icon.setAttribute('data-lucide', 'globe');
+                name.innerText = "Navegador Web / Notícias";
+            } else if (type === 'game') {
+                icon.setAttribute('data-lucide', 'gamepad-2');
+                name.innerText = "Jogo / Entretenimento";
+            }
+            lucide.createIcons();
+            showFloatingToast(`Acompanhando você no app: ${name.innerText}`);
+        }
+
+        function showFloatingToast(text) {
+            const toast = document.getElementById('floatingBubbleToast');
+            const toastText = document.getElementById('floatingToastText');
+            toastText.innerText = text;
+            toast.classList.remove('hidden');
+            setTimeout(() => { toast.classList.add('hidden'); }, 4000);
+        }
+
+        // Mode Switching
+        function setMode(mode) {
+            currentMode = mode;
+            const btnAssist = document.getElementById('btnModeAssistant');
+            const btnFriend = document.getElementById('btnModeFriend');
+            const btnCustom = document.getElementById('btnModeCustom');
+            const badge = document.getElementById('modeBadge');
+            const avatar = document.getElementById('servoAvatar');
+            const avatarIcon = document.getElementById('servoAvatarIcon');
+            const memoryCard = document.getElementById('memoryCard');
+            const customContainer = document.getElementById('customPersonaContainer');
+
+            // Reset buttons
+            btnAssist.className = "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-slate-400 hover:text-cyan-300 transition-all";
+            btnFriend.className = "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-slate-400 hover:text-purple-300 transition-all";
+            btnCustom.className = "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-slate-400 hover:text-emerald-300 transition-all";
+            if (customContainer) customContainer.classList.add('hidden');
+
+            if (mode === 'assistant') {
+                btnAssist.className = "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all bg-cyan-600 text-slate-950 shadow-md";
+                badge.innerText = "Servo Obediente";
+                badge.className = "text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40";
+                avatar.className = "relative flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-950 via-slate-900 to-slate-950 border border-cyan-400/40 glow-cyan transition-all duration-500";
+                avatarIcon.setAttribute('data-lucide', 'bot');
+                avatarIcon.className = "w-6 h-6 text-cyan-400";
+                logConsole("Modo alterado para SERVO OBEDIENTE.", "info");
+                speakResponse("Modo Servo ativado. Às suas ordens, Mestre.");
+            } else if (mode === 'friend') {
+                btnFriend.className = "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all bg-purple-600 text-white shadow-md";
+                badge.innerText = "Amigo Próximo";
+                badge.className = "text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-500/40";
+                avatar.className = "relative flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-950 via-pink-950 to-slate-950 border border-purple-400/40 glow-purple transition-all duration-500";
+                avatarIcon.setAttribute('data-lucide', 'heart');
+                avatarIcon.className = "w-6 h-6 text-pink-400 animate-pulse";
+                logConsole("Modo alterado para AMIGO PRÓXIMO.", "info");
+                speakResponse("Modo Amigo ligado! Como tá sendo seu dia? Tô aqui por você.");
+            } else {
+                btnCustom.className = "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all bg-emerald-600 text-slate-950 shadow-md";
+                badge.innerText = "Modo Adaptável";
+                badge.className = "text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40";
+                avatar.className = "relative flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-950 via-teal-950 to-slate-950 border border-emerald-400/40 glow-emerald transition-all duration-500";
+                avatarIcon.setAttribute('data-lucide', 'sparkles');
+                avatarIcon.className = "w-6 h-6 text-emerald-400";
+                if (customContainer) customContainer.classList.remove('hidden');
+                logConsole(`Modo customizado ativo: "${customPersonaPrompt}"`, "info");
+                speakResponse("Modo adaptável ativado. Respondendo no estilo customizado.");
+            }
+            lucide.createIcons();
+        }
+
+        function renderPermissions() {
+            const container = document.getElementById('permissionsList');
+            container.innerHTML = '';
+            let grantedCounter = 0;
+
+            permissions.forEach(p => {
+                if (p.granted) grantedCounter++;
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-2.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition-colors';
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-xl ${p.granted ? 'bg-cyan-950/80 text-cyan-400 border border-cyan-800/50' : 'bg-slate-900 text-slate-600'}">
+                            <i data-lucide="${p.icon}" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-semibold text-slate-200">${p.name}</h4>
+                            <p class="text-[10px] text-slate-400">${p.desc}</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" ${p.granted ? 'checked' : ''} onchange="togglePermission('${p.id}')" class="sr-only peer">
+                        <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-500"></div>
+                    </label>
+                `;
+                container.appendChild(item);
+            });
+
+            document.getElementById('grantedCount').innerText = `${grantedCounter}/${permissions.length} Ativas`;
+            lucide.createIcons();
+        }
+
+        function togglePermission(id) {
+            const perm = permissions.find(p => p.id === id);
+            if (perm) {
+                perm.granted = !perm.granted;
+                renderPermissions();
+                logConsole(`Permissão '${perm.name}' alterada para: ${perm.granted ? 'PERMITIDO' : 'BLOQUEADO'}`, perm.granted ? 'success' : 'warn');
+                speakResponse(currentMode === 'assistant' ? 
+                    `Permissão de ${perm.name} alterada.` : 
+                    `Entendido! Agora você ${perm.granted ? 'liberou' : 'bloqueou'} ${perm.name}.`);
+            }
+        }
+
+        function renderRules() {
+            const container = document.getElementById('rulesList');
+            container.innerHTML = '';
+
+            memoryRules.forEach(rule => {
+                const card = document.createElement('div');
+                card.className = 'p-3 rounded-2xl bg-slate-950/50 border border-purple-900/30 flex items-start justify-between gap-2 text-xs group hover:border-purple-500/40 transition-colors';
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-mono bg-purple-950 text-purple-300 border border-purple-500/30">${rule.type}</span>
+                            <span class="font-semibold text-slate-200">${rule.trigger}</span>
+                        </div>
+                        <p class="text-slate-400 text-[11px] leading-relaxed"><i data-lucide="corner-down-right" class="w-3 h-3 inline text-purple-400 mr-1"></i>${rule.action}</p>
+                    </div>
+                    <button onclick="deleteRule(${rule.id})" class="text-slate-600 hover:text-rose-400 p-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function runSystemOptimization() {
+            logConsole("Executando varredura de memória RAM e caches do celular...", "info");
+            setTimeout(() => {
+                logConsole("Limpeza concluída! 1.4 GB de memória liberados.", "success");
+                speakResponse("Otimização do dispositivo concluída com sucesso!");
+            }, 1000);
+        }
+
+        function logConsole(message, type = 'info') {
+            const consoleLog = document.getElementById('consoleLog');
+            if (!consoleLog) return;
+            const entry = document.createElement('div');
+            const time = new Date().toLocaleTimeString('pt-BR');
+
+            let colorClass = 'text-slate-300';
+            let prefix = '[LOG]';
+
+            if (type === 'servo') {
+                colorClass = currentMode === 'assistant' ? 'text-cyan-300 font-semibold' : (currentMode === 'friend' ? 'text-pink-300 font-semibold' : 'text-emerald-300 font-semibold');
+                prefix = currentMode === 'assistant' ? '[SERVO ASSISTENTE]' : (currentMode === 'friend' ? '[SERVO AMIGO]' : '[SERVO ADAPTÁVEL]');
+            } else if (type === 'cmd') {
+                colorClass = 'text-purple-300';
+                prefix = '[VOCÊ]';
+            } else if (type === 'success') {
+                colorClass = 'text-emerald-400';
+                prefix = '[EXECUÇÃO SISTEMA]';
+            } else if (type === 'warn') {
+                colorClass = 'text-amber-400';
+                prefix = '[ALERTA]';
+            }
+
+            entry.className = `${colorClass} transition-all`;
+            entry.innerHTML = `<span class="text-slate-500">[${time}]</span> ${prefix} ${message}`;
+            consoleLog.appendChild(entry);
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('consoleLog').innerHTML = '';
+            logConsole("Terminal reiniciado.", "info");
+        }
+
+        // Speech Recognition Setup
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                logConsole("Reconhecimento de voz não suportado neste navegador. Use a caixa de texto.", "warn");
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'pt-BR';
+
+            recognition.onstart = function() {
+                isListening = true;
+                updateMicUI(true);
+                document.getElementById('voiceStatusBadge').innerText = "Ouvindo você...";
+                document.getElementById('voiceStatusBadge').className = "text-xs font-medium px-3 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/50 animate-pulse";
+            };
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('speechTranscript').innerText = `"${transcript}"`;
+                logConsole(`Voz captada: "${transcript}"`, "cmd");
+                processCommand(transcript);
+            };
+
+            recognition.onerror = function(event) {
+                logConsole(`Erro de captura de áudio: ${event.error}`, "warn");
+                stopListeningState();
+            };
+
+            recognition.onend = function() { stopListeningState(); };
+        }
+
+        function toggleSpeechRecognition() {
+            if (!recognition) initSpeechRecognition();
+            if (!recognition) return;
+
+            if (isListening) {
+                recognition.stop();
+            } else {
+                try { recognition.start(); } catch (e) { recognition.stop(); }
+            }
+        }
+
+        function stopListeningState() {
+            isListening = false;
+            updateMicUI(false);
+            document.getElementById('voiceStatusBadge').innerText = "Aguardando comando de voz...";
+            document.getElementById('voiceStatusBadge').className = "text-xs font-medium px-3 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-800";
+        }
+
+        function updateMicUI(listening) {
+            const micBtn = document.getElementById('micBtn');
+            const micIcon = document.getElementById('micIcon');
+            const orbPulse = document.getElementById('orbPulse');
+            const waves = document.getElementById('soundWaves');
+            const floatingPulse = document.getElementById('floatingPulse');
+
+            if (listening) {
+                if (micBtn) micBtn.classList.add('glow-purple', 'scale-105');
+                if (micIcon) micIcon.className = "w-11 h-11 text-purple-200 animate-bounce";
+                if (orbPulse) orbPulse.classList.add('pulse-ring', 'scale-125');
+                if (waves) {
+                    waves.classList.remove('opacity-25');
+                    waves.classList.add('opacity-100');
+                }
+                if (floatingPulse) floatingPulse.classList.add('pulse-ring', 'bg-purple-500/40');
+            } else {
+                if (micBtn) micBtn.classList.remove('glow-purple', 'scale-105');
+                if (micIcon) micIcon.className = "w-11 h-11 text-cyan-200";
+                if (orbPulse) orbPulse.classList.remove('pulse-ring', 'scale-125');
+                if (waves) {
+                    waves.classList.add('opacity-25');
+                    waves.classList.remove('opacity-100');
+                }
+                if (floatingPulse) floatingPulse.classList.remove('pulse-ring', 'bg-purple-500/40');
+            }
+        }
+
+        function speakResponse(text) {
+            if (isOverlayMinimized) {
+                showFloatingToast(text);
+            }
+            if (!settings.ttsEnabled || !synth) return;
+            synth.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 1.0;
+            utterance.pitch = currentMode === 'friend' ? 1.1 : (currentMode === 'custom' ? 1.05 : 0.95);
+
+            const voices = synth.getVoices();
+            const ptVoice = voices.find(v => v.lang.includes('pt'));
+            if (ptVoice) utterance.voice = ptVoice;
+
+            synth.speak(utterance);
+        }
+
+        function handleManualInput(e) {
+            e.preventDefault();
+            const input = document.getElementById('manualInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            document.getElementById('speechTranscript').innerText = `"${text}"`;
+            logConsole(text, "cmd");
+            processCommand(text);
+            input.value = '';
+        }
+
+        async function processCommand(cmdRaw) {
+            const cmd = cmdRaw.toLowerCase();
+            logConsole("Processando ordem e conferindo permissões de sistema...", "info");
+
+            if (settings.apiKey) {
+                await processWithGemini(cmdRaw);
+                return;
+            }
+
+            setTimeout(() => {
+                let response = "";
+
+                if (cmd.includes("brilho") || cmd.includes("volume") || cmd.includes("wi-fi") || cmd.includes("bluetooth")) {
+                    if (checkPermission('settings')) {
+                        response = currentMode === 'assistant' ? 
+                            "Ajustando configurações de hardware do celular conforme solicitado, Mestre." : 
+                            "Prontinho! Já alterei essa configuração pra você!";
+                        logConsole("Ação executada: System.HardwareControl.Update()", "success");
+                    } else {
+                        response = "Não posso realizar essa ação pois a permissão de Hardware está desativada.";
+                        logConsole("Bloqueado por falta de permissão.", "warn");
+                    }
+                }
+                else if (cmd.includes("amigo") || cmd.includes("como você está") || cmd.includes("triste") || cmd.includes("conversar")) {
+                    response = currentMode === 'friend' ? 
+                        "Tô sempre aqui por você! Pode me contar qualquer coisa, sou seu parceiro pra todas as horas." : 
+                        "Todos os meus circuitos estão operando perfeitamente para atendê-lo, Mestre.";
+                    logConsole("Interação embutida processada.", "servo");
+                }
+                else if (cmd.includes("aprender") || cmd.includes("lembre") || cmd.includes("gosto de")) {
+                    const ruleAction = cmdRaw.replace(/servo|aprender|lembre|gosto de/gi, '').trim();
+                    const newRule = {
+                        id: Date.now(),
+                        trigger: 'Aprendizado por Voz',
+                        action: ruleAction || 'Preferência memorizada',
+                        type: currentMode === 'friend' ? 'Amizade' : 'Instrução'
+                    };
+                    memoryRules.push(newRule);
+                    renderRules();
+                    response = currentMode === 'friend' ? 
+                        `Guardei na memória que você gosta de: ${ruleAction}` : 
+                        `Novo dado registrado no banco de memória principal.`;
+                    logConsole(`Nova regra aprendida: ${newRule.action}`, "success");
+                }
+                else {
+                    response = currentMode === 'friend' ? 
+                        `Achei muito legal você comentar sobre "${cmdRaw}"! Me conta mais!` : 
+                        `Instrução recebida: "${cmdRaw}". Protocolo de atendimento concluído.`;
+                    logConsole("Resposta simulada gerada com sucesso.", "success");
+                }
+
+                logConsole(`"${response}"`, "servo");
+                speakResponse(response);
+            }, 500);
+        }
+
+        function checkPermission(id) {
+            const p = permissions.find(item => item.id === id);
+            return p ? p.granted : false;
+        }
+
+        async function processWithGemini(userQuery) {
+            let systemPrompt = "Você é o SERVO, assistente leal do celular.";
+            if (currentMode === 'assistant') {
+                systemPrompt = "Você é o SERVO, assistente virtual pessoal extremamente leal, formal e eficiente para celular. Responda curto e direto.";
+            } else if (currentMode === 'friend') {
+                systemPrompt = "Você é o SERVO, um amigo IA empático, acolhedor e muito parceiro do usuário. Responda com carinho e amizade.";
+            } else {
+                systemPrompt = `Você é o SERVO agindo no seguinte modo customizado: ${customPersonaPrompt}. Responda mantendo esse personagem.`;
+            }
+            
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${settings.apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] }
+                    })
+                });
+
+                const data = await response.json();
+                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Instrução processada.";
+
+                logConsole(`"${aiText}"`, "servo");
+                speakResponse(aiText);
+            } catch (err) {
+                logConsole("Erro de integração com Gemini. Utilizando motor interno.", "warn");
+                speakResponse("Tive um problema na conexão rápida, mas continuo aqui por você.");
+            }
+        }
+
+        function toggleSettingsModal() { document.getElementById('settingsModal').classList.toggle('hidden'); }
+        function saveSettings() {
+            settings.apiKey = document.getElementById('apiKeyInput').value.trim();
+            const customIn = document.getElementById('customPersonaInput');
+            if (customIn && customIn.value.trim()) customPersonaPrompt = customIn.value.trim();
+            settings.ttsEnabled = document.getElementById('ttsToggle').checked;
+            toggleSettingsModal();
+            logConsole("Configurações atualizadas.", "info");
+            speakResponse("Configurações salvas!");
+        }
+
+        function openAddRuleModal() { document.getElementById('addRuleModal').classList.remove('hidden'); }
+        function closeAddRuleModal() { document.getElementById('addRuleModal').classList.add('hidden'); }
+
+        function saveNewRule() {
+            const trigger = document.getElementById('ruleTriggerInput').value.trim();
+            const action = document.getElementById('ruleActionInput').value.trim();
+            if (!trigger || !action) return;
+
+            memoryRules.push({ id: Date.now(), trigger, action, type: 'Manual' });
+            renderRules();
+            closeAddRuleModal();
+            document.getElementById('ruleTriggerInput').value = '';
+            document.getElementById('ruleActionInput').value = '';
+            logConsole(`Regra gravada: [${trigger}] -> ${action}`, "success");
+            speakResponse("Memória gravada!");
+        }
+
+        function deleteRule(id) {
+            memoryRules = memoryRules.filter(r => r.id !== id);
+            renderRules();
+            logConsole("Regra removida da memória.", "warn");
+        }
+    </script>
+</body>
+</html>
+```
